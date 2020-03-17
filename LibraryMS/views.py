@@ -15,7 +15,8 @@ def dashboard(request):
         messages.warning(request, 'You Need to first Update your profile.')
         return redirect('profile')
     else:
-        return render(request,'users/dashboard.html')
+        return render(request, 'users/dashboard.html')
+
 
 @login_required
 def add_author(request):
@@ -57,7 +58,8 @@ def add_book(request):
                 publisher = form.cleaned_data['publishers']
                 availability = form.cleaned_data['availability']
 
-                avb = Availability.objects.create(ISBN=ISBN, availability=availability, title=title, price=price, publisher=publisher)
+                avb = Availability.objects.create(ISBN=ISBN, availability=availability, title=title, price=price,
+                                                  publisher=publisher)
                 avb.save()
 
                 for _ in range(availability):
@@ -104,5 +106,6 @@ class MemberRequiredMixin:
             messages.warning(request, 'You Need to first Update your profile.')
             return redirect('profile')
 
-class BookDetailView(MemberRequiredMixin,DetailView):
+
+class BookDetailView(MemberRequiredMixin, DetailView):
     model = Book
