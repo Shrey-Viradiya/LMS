@@ -1,6 +1,5 @@
 from django.db import models
 
-
 # Create your models here.
 from django.db.models import SET_NULL
 
@@ -22,14 +21,21 @@ class Publisher(models.Model):
         return self.name
 
 
+class Availability(models.Model):
+    ISBN = models.CharField(max_length = 13,primary_key=True)
+    availability = models.IntegerField()
+    title = models.CharField(max_length=255, default="NA")
+    price = models.PositiveIntegerField(default=0)
+    authors = models.ManyToManyField(Author)
+    publisher = models.ForeignKey(Publisher, on_delete=SET_NULL, blank=True, null=True)
+
+
 class Book(models.Model):
     book_id = models.AutoField(primary_key=True)
-    ISBN = models.BigIntegerField(max_length=13)
-    title = models.CharField(max_length=255)
-    price = models.PositiveIntegerField()
-    availability = models.IntegerField()
-    authors = models.ManyToManyField(Author)
-    publisher = models.ForeignKey(Publisher, on_delete=SET_NULL, blank=True, null= True)
+    ISBN = models.ForeignKey(Availability, on_delete=models.CASCADE)
+
 
     def __str__(self):
-        return f"{self.title} with ISBN {self.ISBN}"
+        return f"Book ID {self.book_id}: {self.title}"
+
+

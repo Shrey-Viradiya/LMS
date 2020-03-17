@@ -18,6 +18,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from users import views as user_views
 from LibraryMS import views as LMS_views
+from LibraryMS.views import BookDetailView
 
 urlpatterns = [
     path('', user_views.home, name='LMS-home'),
@@ -41,4 +42,5 @@ urlpatterns = [
          name='password_reset_complete'),
     path('register/', user_views.register, name='register'),
     path('profile/', user_views.profile, name='profile'),
+    path('book/<int:pk>/', BookDetailView.as_view() , name = 'book-detail'),
 ]

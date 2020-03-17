@@ -1,0 +1,19 @@
+{% extends "users/base.html" %}
+
+{% block content %}
+    
+    <div class="d-xl-flex align-items-xl-start">
+    <div class="book-preview">
+            <h2 class="book-title">{{ object.title }}</h2>
+            <h4 class="">ISBN: {{ object.ISBN }}</h4>
+            <p class="post-meta">By</p>
+                {% for author in object.authors.all %}
+                    <p class="post-meta">{{ author }}</p>
+                {% endfor %}
+            <p class="post-subtitle">{{ object.publisher }}</p>
+    </div>
+    
+    </div>
+    <hr>
+    
+{% endblock content %}  
