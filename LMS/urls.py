@@ -21,7 +21,7 @@ from LibraryMS import views as LMS_views
 from LibraryMS.views import BookDetailView
 
 urlpatterns = [
-    path('', user_views.home, name='LMS-home'),
+    path('', LMS_views.home, name='LMS-home'),
     path('dashboard/', LMS_views.dashboard, name='Member-dashboard'),
     path('add-author/',LMS_views.add_author, name="add-author"),
     path('add-book/',LMS_views.add_book, name="add-book"),

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Book, Author, Publisher, Availability
+from .models import Author, Publisher
 
 
 class AuthorUpdateForm(forms.ModelForm):
@@ -7,11 +7,17 @@ class AuthorUpdateForm(forms.ModelForm):
         model = Author
         fields = ['name']
 
+    def clean_name(self):
+        return self.cleaned_data['name'].title()
+
 
 class PublisherUpdateForm(forms.ModelForm):
     class Meta:
         model = Publisher
         fields = ['name', 'address']
+
+    def clean_name(self):
+        return self.cleaned_data['name'].title()
 
 
 class AddBookForm(forms.Form):

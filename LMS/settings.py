@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'isbn_field',
     'crispy_forms',
     'LibraryMS',
+    'django.contrib.postgres',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

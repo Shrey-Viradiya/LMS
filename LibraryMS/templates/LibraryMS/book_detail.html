@@ -6,11 +6,20 @@
     <div class="book-preview">
             <h2 class="book-title">{{ object.title }}</h2>
             <h4 class="">ISBN: {{ object.ISBN }}</h4>
-            <p class="post-meta">By</p>
+            By
+            <p class="post-meta">
                 {% for author in object.authors.all %}
-                    <p class="post-meta">{{ author }}</p>
+                    {{ author }}<br>
                 {% endfor %}
+            </p>
             <p class="post-subtitle">{{ object.publisher }}</p>
+
+            <h5>Available Copies:</h5>
+            <p>
+            {% for copy in copies %}
+                <small>Book_id:</small> {{ copy.book_id }}<br>
+            {% endfor %}
+            </p>
     </div>
     
     </div>
