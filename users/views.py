@@ -20,9 +20,6 @@ def register(request):
     return render(request, 'users/register.html', {'form': form})
 
 
-def home(request):
-    return render(request, 'users/home.html')
-
 
 @login_required
 def profile(request):
