@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 from django.db.models import SET_NULL
@@ -39,3 +40,23 @@ class BookCopy(models.Model):
 
     def __str__(self):
         return f"Book ID {self.book_id}: {self.ISBN}"
+
+
+class BookHold(models.Model):
+    book = models.ForeignKey(BookCopy, on_delete=models.CASCADE)
+    holder = models.ForeignKey(User, on_delete=models.CASCADE)
+    res_date = models.DateTimeField()
+    priority = models.SmallIntegerField()
+
+    def __str__(self):
+        return f"Book {self.book.book_id} held By User ID {self.holder.id}"
+
+
+class BookBorrowed(models.Model):
+    book = models.ForeignKey(BookCopy, on_delete=models.CASCADE)
+    borrower = models.ForeignKey(User, on_delete=models.CASCADE)
+    res_date = models.DateTimeField()
+    due_date = models.DateTimeField()
+
+    def __str__(self):
+        return f"Book {self.book.book_id} Borrowed By User ID {self.borrower.id}"

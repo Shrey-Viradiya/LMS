@@ -29,3 +29,10 @@ class AddBookForm(forms.Form):
     availability = forms.IntegerField(label = 'Availability', min_value=0)
 
 
+class GiveBookForm(forms.Form):
+    ISBN = forms.IntegerField(label='ISBN', min_value=0, max_value=9999999999999)
+    user_id = forms.IntegerField(label='User ID', min_value=0, max_value=9999999999999)
+
+
+class ReturnBook(forms.Form):
+    book_id = forms.IntegerField(label='book_id', min_value=0, max_value=9999999999999)

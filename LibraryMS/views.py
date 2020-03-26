@@ -1,11 +1,14 @@
 from django.db.models import Q
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from users.models import Member
 from django.contrib import messages
 from django.views.generic import DetailView
-from .models import Book, BookCopy
-from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm
+from .models import Book, BookCopy, BookHold, BookBorrowed
+from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBook
+from datetime import datetime, timedelta
+from django.contrib.auth.models import User
+
 
 
 # Create your views here.
@@ -107,6 +110,106 @@ class BookDetailView(DetailView):
         context['copies'] = BookCopy.objects.filter(ISBN=self.get_object().ISBN)
         return context
 
+
+@login_required
+def HoldBook(request, pk):
+    book = Book.objects.get(ISBN=pk)
+    if book.availability > 0:
+        messages.warning(request, 'You can not hold the book which are all ready available in the shelf!')
+        return redirect('book-detail',pk = pk)
+    else:
+        book_copies = BookCopy.objects.filter(ISBN=book)
+
+        reserved_book = BookHold.objects.all()
+        reserved_book_id = []
+
+        for _ in reserved_book:
+            reserved_book_id.append(_.book.book_id)
+
+        for bc in book_copies:
+            if bc.book_id not in reserved_book_id:
+                hld = BookHold.objects.create(book_id= bc.book_id, holder = request.user, res_date=datetime.now(), priority=abs(book.availability))
+                hld.save()
+                book.availability -= 1
+                book.save()
+                break
+        messages.info(request, 'Book Reserved!')
+        return redirect('book-detail', pk=pk)
+
+
+@login_required
+def GiveBook(request):
+    if not request.user.is_staff:
+        messages.warning(request, 'You are not authorised to requested page.')
+        return redirect('Member-dashboard')
+    else:
+        if request.method == 'POST':
+            form = GiveBookForm(request.POST)
+            if form.is_valid():
+                isbn = form.cleaned_data['ISBN']
+                user = form.cleaned_data['user_id']
+
+                book = get_object_or_404(Book, ISBN = isbn)
+                usr = get_object_or_404(User,id=user)
+
+                if book.availability <= 0:
+                    check = BookHold.objects.filter(holder=usr)
+                    for _ in check:
+                        if _.book.ISBN == isbn:
+                            bb = BookBorrowed.objects.create(borrower=usr, book=_, res_date=datetime.now(), due_date= datetime.now() + timedelta(days=14))
+                            bb.save()
+                            book.availability -= 1
+                            book.save()
+                            _.delete()
+                            break
+                    else:
+                        messages.warning(request, 'Book Not Available!')
+                        return redirect('give-book')
+                else:
+                    book_copies = BookCopy.objects.filter(ISBN=book)
+
+                    reserved_book = BookHold.objects.all()
+                    reserved_book_id = []
+
+                    for _ in reserved_book:
+                        reserved_book_id.append(_.book.book_id)
+
+                    for bc in book_copies:
+                        if bc.book_id not in reserved_book_id:
+                            bb = BookBorrowed.objects.create(borrower=usr, book=bc, res_date=datetime.now(),
+                                                             due_date=datetime.now() + timedelta(days=14))
+                            bb.save()
+                            book.availability -= 1
+                            book.save()
+                            break
+                    messages.success(request, 'Book Given!')
+                    return redirect('give-book')
+        else:
+            form = GiveBookForm()
+        return render(request, 'LibraryMS/GiveBook.html', {'form': form})
+
+
+@login_required
+def ReturnBook(request):
+    if not request.user.is_staff:
+        messages.warning(request, 'You are not authorised to requested page.')
+        return redirect('Member-dashboard')
+    else:
+        if request.method == 'POST':
+            form = ReturnBook(request.POST)
+            if form.is_valid():
+                id = form.cleaned_data['book_id']
+
+                bc = get_object_or_404(BookCopy, book_id = id)
+                temp = get_object_or_404(BookBorrowed, book = bc)
+                temp.delete()
+
+                messages.success(request, 'Book Returned!')
+                return redirect('return-book')
+
+            else:
+                form = ReturnBook()
+            return render(request, 'LibraryMS/ReturnBook.html', {'form': form})
 
 def home(request):
     if request.method == 'GET':

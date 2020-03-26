@@ -28,7 +28,7 @@
             <div
                 class="collapse navbar-collapse" id="navbarResponsive">
                 <ul class="nav navbar-nav ml-auto">
-                    <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'LMS-home' %}">Home</a></li>
+{#                    <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'LMS-home' %}">Home</a></li>#}
 {#                    <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'blog-about' %}">About</a></li>#}
                     {% if user.is_authenticated %}
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'Member-dashboard' %}">DashBoard</a></li>
@@ -37,6 +37,8 @@
                             <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-author' %}">Add Author</a></li>
                             <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-publisher' %}">Add-Publisher</a></li>
                             <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-book' %}">Add-book</a></li>
+                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'give-book' %}">Give-book</a></li>
+                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'return-book' %}">Return-book</a></li>
                         {% endif %}
 
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>

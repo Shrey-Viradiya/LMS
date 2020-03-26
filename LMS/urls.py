@@ -43,4 +43,7 @@ urlpatterns = [
     path('register/', user_views.register, name='register'),
     path('profile/', user_views.profile, name='profile'),
     path('book/<int:pk>/', BookDetailView.as_view() , name = 'book-detail'),
+    path('book/Hold/<int:pk>/', LMS_views.HoldBook , name = 'book-hold'),
+    path('givebook/', LMS_views.GiveBook , name = 'give-book'),
+    path('returnbook/', LMS_views.ReturnBook , name = 'return-book'),
 ]

@@ -23,6 +23,12 @@
     </div>
     
     </div>
+
+    <div>
+        {% if user.is_authenticated %}
+            <a class="btn-sm btn-outline-info" href="{% url 'book-hold' object.ISBN %}"><u>Hold Book</u></a>
+        {% endif %}
+    </div>
     <hr>
     
 {% endblock content %}  
