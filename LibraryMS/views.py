@@ -118,21 +118,34 @@ def HoldBook(request, pk):
         messages.warning(request, 'You can not hold the book which are all ready available in the shelf!')
         return redirect('book-detail',pk = pk)
     else:
-        book_copies = BookCopy.objects.filter(ISBN=book)
+        # book_copies = BookCopy.objects.filter(ISBN=book)
+        #
+        # reserved_book = BookHold.objects.all()
+        # reserved_book_id = []
+        #
+        # for _ in reserved_book:
+        #     reserved_book_id.append(_.book.book_id)
+        #
+        # for bc in book_copies:
+        #     if bc.book_id not in reserved_book_id:
+        #         hld = BookHold.objects.create(book_id= bc.book_id, holder = request.user, res_date=datetime.now(), priority=abs(book.availability))
+        #         hld.save()
+        #         book.availability -= 1
+        #         book.save()
+        #         break
 
-        reserved_book = BookHold.objects.all()
-        reserved_book_id = []
+        holds = BookHold.objects.filter(holder = request.user)
+        for _ in holds:
+            if _.book == book:
+                messages.info(request, 'Can not hold the same book again!')
+                return redirect('book-detail', pk=pk)
 
-        for _ in reserved_book:
-            reserved_book_id.append(_.book.book_id)
+        pr = book.availability.__abs__()
+        hld = BookHold.objects.create(book=book, holder=request.user, res_date=datetime.now(), priority=pr)
+        hld.save()
+        book.availability -= 1
+        book.save()
 
-        for bc in book_copies:
-            if bc.book_id not in reserved_book_id:
-                hld = BookHold.objects.create(book_id= bc.book_id, holder = request.user, res_date=datetime.now(), priority=abs(book.availability))
-                hld.save()
-                book.availability -= 1
-                book.save()
-                break
         messages.info(request, 'Book Reserved!')
         return redirect('book-detail', pk=pk)
 
@@ -146,42 +159,55 @@ def GiveBook(request):
         if request.method == 'POST':
             form = GiveBookForm(request.POST)
             if form.is_valid():
-                isbn = form.cleaned_data['ISBN']
+                book_id = form.cleaned_data['book_id']
                 user = form.cleaned_data['user_id']
 
-                book = get_object_or_404(Book, ISBN = isbn)
+                book_copy = get_object_or_404(BookCopy, book_id=book_id)
                 usr = get_object_or_404(User,id=user)
+                book = book_copy.ISBN
+
+                if BookBorrowed.objects.filter(book = book_copy).first():
+                    messages.warning(request, 'Book Already Borrowed! Something is wrong !Do not give the book...')
+                    return redirect('give-book')
 
                 if book.availability <= 0:
                     check = BookHold.objects.filter(holder=usr)
                     for _ in check:
-                        if _.book.ISBN == isbn:
-                            bb = BookBorrowed.objects.create(borrower=usr, book=_, res_date=datetime.now(), due_date= datetime.now() + timedelta(days=14))
+                        if _.book == book:
+                            bb = BookBorrowed.objects.create(borrower=usr, book=book_copy, res_date=datetime.now(), due_date= datetime.now() + timedelta(days=14))
                             bb.save()
                             book.availability -= 1
                             book.save()
                             _.delete()
-                            break
+                            messages.success(request, 'Book Given!')
+                            return redirect('give-book')
                     else:
                         messages.warning(request, 'Book Not Available!')
                         return redirect('give-book')
                 else:
-                    book_copies = BookCopy.objects.filter(ISBN=book)
+                    # book_copies = BookCopy.objects.filter(ISBN=book)
+                    #
+                    # reserved_book = BookHold.objects.all()
+                    # reserved_book_id = []
+                    #
+                    # for _ in reserved_book:
+                    #     reserved_book_id.append(_.book)
+                    #
+                    # for bc in book_copies:
+                    #     if bc not in reserved_book_id:
+                    #         bb = BookBorrowed.objects.create(borrower=usr, book=bc, res_date=datetime.now(),
+                    #                                          due_date=datetime.now() + timedelta(days=14))
+                    #         bb.save()
+                    #         book.availability -= 1
+                    #         book.save()
+                    #         break
 
-                    reserved_book = BookHold.objects.all()
-                    reserved_book_id = []
+                    bb = BookBorrowed.objects.create(borrower=usr, book=book_copy, res_date=datetime.now(),
+                                                     due_date=datetime.now() + timedelta(days=14))
+                    bb.save()
+                    book.availability -= 1
+                    book.save()
 
-                    for _ in reserved_book:
-                        reserved_book_id.append(_.book.book_id)
-
-                    for bc in book_copies:
-                        if bc.book_id not in reserved_book_id:
-                            bb = BookBorrowed.objects.create(borrower=usr, book=bc, res_date=datetime.now(),
-                                                             due_date=datetime.now() + timedelta(days=14))
-                            bb.save()
-                            book.availability -= 1
-                            book.save()
-                            break
                     messages.success(request, 'Book Given!')
                     return redirect('give-book')
         else:
@@ -198,9 +224,12 @@ def ReturnBook(request):
         if request.method == 'POST':
             form = ReturnBookForm(request.POST)
             if form.is_valid():
-                id = form.cleaned_data['book_id']
+                id_got = form.cleaned_data['book_id']
 
-                bc = get_object_or_404(BookCopy, book_id = id)
+                bc = get_object_or_404(BookCopy, book_id = id_got)
+                book = bc.ISBN
+                book.availability += 1
+                book.save()
                 temp = get_object_or_404(BookBorrowed, book = bc)
                 temp.delete()
 

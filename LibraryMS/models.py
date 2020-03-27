@@ -39,21 +39,21 @@ class BookCopy(models.Model):
     ISBN = models.ForeignKey(Book, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Book ID {self.book_id}: {self.ISBN}"
+        return f"Book ID {self.book_id}: {self.ISBN.title}"
 
 
 class BookHold(models.Model):
-    book = models.ForeignKey(BookCopy, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
     holder = models.ForeignKey(User, on_delete=models.CASCADE)
     res_date = models.DateTimeField()
-    priority = models.SmallIntegerField()
+    priority = models.PositiveIntegerField()
 
     def __str__(self):
-        return f"Book {self.book.book_id} held By User ID {self.holder.id}"
+        return f"Book {self.book.ISBN} held By User ID {self.holder.id}"
 
 
 class BookBorrowed(models.Model):
-    book = models.ForeignKey(BookCopy, on_delete=models.CASCADE)
+    book = models.OneToOneField(BookCopy, on_delete=models.CASCADE)
     borrower = models.ForeignKey(User, on_delete=models.CASCADE)
     res_date = models.DateTimeField()
     due_date = models.DateTimeField()
