@@ -5,7 +5,7 @@ from users.models import Member
 from django.contrib import messages
 from django.views.generic import DetailView
 from .models import Book, BookCopy, BookHold, BookBorrowed
-from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBook
+from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 
@@ -196,7 +196,7 @@ def ReturnBook(request):
         return redirect('Member-dashboard')
     else:
         if request.method == 'POST':
-            form = ReturnBook(request.POST)
+            form = ReturnBookForm(request.POST)
             if form.is_valid():
                 id = form.cleaned_data['book_id']
 
@@ -208,8 +208,9 @@ def ReturnBook(request):
                 return redirect('return-book')
 
         else:
-            form = ReturnBook()
+            form = ReturnBookForm()
         return render(request, 'LibraryMS/ReturnBook.html', {'form': form})
+
 
 def home(request):
     if request.method == 'GET':
