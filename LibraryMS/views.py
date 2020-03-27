@@ -207,9 +207,9 @@ def ReturnBook(request):
                 messages.success(request, 'Book Returned!')
                 return redirect('return-book')
 
-            else:
-                form = ReturnBook()
-            return render(request, 'LibraryMS/ReturnBook.html', {'form': form})
+        else:
+            form = ReturnBook()
+        return render(request, 'LibraryMS/ReturnBook.html', {'form': form})
 
 def home(request):
     if request.method == 'GET':
