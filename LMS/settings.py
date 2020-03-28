@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'isbn_field',
     'crispy_forms',
     'LibraryMS',
+    'background_task',
     'django.contrib.postgres',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -156,5 +157,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_ID')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
+
+BACKGROUND_TASK_RUN_ASYNC = True
 
 django_heroku.settings(locals())

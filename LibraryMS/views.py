@@ -9,8 +9,6 @@ from .models import Book, BookCopy, BookHold, BookBorrowed
 from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
-from django.core.mail import send_mail
-
 
 
 # Create your views here.
@@ -165,15 +163,17 @@ def HoldBook(request, pk):
         book.availability -= 1
         book.save()
 
-        messages.info(request, 'Book Reserved!')
+
         message = f'Dear {request.user.first_name} {request.user.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
-        send_mail(
-            f'Material Hold {datetime.today()}',
-            message,
-            'LibraryManagementSystem',
-            [str(request.user.email)],
-            fail_silently=True,
-        )
+        # send_mail(
+        #     f'Material Hold {datetime.today()}',
+        #     message,
+        #     'LibraryManagementSystem',
+        #     [str(request.user.email)],
+        #     fail_silently=True,
+        # )
+        request.user.email_user(f'Material Hold {datetime.today()}',message)
+        messages.info(request, 'Book Reserved!')
         return redirect('book-detail', pk=pk)
 
 
@@ -215,15 +215,17 @@ def GiveBook(request):
                                 x.priority -= 1
                                 x.save()
 
-                            messages.success(request, 'Book Given!')
                             message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
-                            send_mail(
-                                f'Material CheckOut {datetime.today()}',
-                                message,
-                                'LibraryManagementSystem',
-                                [str(usr.email)],
-                                fail_silently=True,
-                            )
+                            # send_mail(
+                            #     f'Material CheckOut {datetime.today()}',
+                            #     message,
+                            #     'LibraryManagementSystem',
+                            #     [str(usr.email)],
+                            #     fail_silently=True,
+                            # )
+                            usr.email_user(f'Material CheckOut {datetime.today()}',message)
+
+                            messages.success(request, 'Book Given!')
                             return redirect('give-book')
                     else:
                         messages.warning(request, 'Book Not Available!')
@@ -252,15 +254,17 @@ def GiveBook(request):
                     book.availability -= 1
                     book.save()
 
-                    messages.success(request, 'Book Given!')
                     message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
-                    send_mail(
-                        f'Material CheckOut {datetime.today()}',
-                        message,
-                        'LibraryManagementSystem',
-                        [str(usr.email)],
-                        fail_silently=True,
-                    )
+                    # send_mail(
+                    #     f'Material CheckOut {datetime.today()}',
+                    #     message,
+                    #     'LibraryManagementSystem',
+                    #     [str(usr.email)],
+                    #     fail_silently=True,
+                    # )
+                    usr.email_user(f'Material CheckOut {datetime.today()}', message)
+
+                    messages.success(request, 'Book Given!')
                     return redirect('give-book')
         else:
             form = GiveBookForm()
@@ -292,28 +296,29 @@ def ReturnBook(request):
 
                 if person:
                     message = f'Dear {person.holder.first_name} {person.holder.last_name},\nYour held book {book.title} is available. Your hold will be available for 3 days only. Please collect the book ASAP.\n\nVisit: {full_url}'
-                    send_mail(
-                        'Hold Available for pickup',
-                        message,
-                        'LibraryManagementSystem',
-                        [str(person.holder.email)],
-                        fail_silently=True,
-                    )
+                    # send_mail(
+                    #     'Hold Available for pickup',
+                    #     message,
+                    #     'LibraryManagementSystem',
+                    #     [str(person.holder.email)],
+                    #     fail_silently=True,
+                    # )
+                    person.holder.email_user('Hold available for pickup', message)
                     person.available = 1
                     person.save()
 
+                message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been returned to library by you.\n\nVisit: {full_url}'
+                usr.email_user(f'Material Return {datetime.today()}', message)
+
+                # send_mail(
+                #     f'Material Return {datetime.today()}',
+                #     message,
+                #     'LibraryManagementSystem',
+                #     [str(usr.email)],
+                #     fail_silently=True,
+                # )
 
                 messages.success(request, 'Book Returned!')
-                message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been returned to library by you.\n\nVisit: {full_url}'
-                send_mail(
-                    f'Material Return {datetime.today()}',
-                    message,
-                    'LibraryManagementSystem',
-                    [str(usr.email)],
-                    fail_silently=True,
-                )
-
-
                 return redirect('return-book')
 
         else:
