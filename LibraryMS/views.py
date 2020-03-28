@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.decorators import login_required
 from users.models import Member
 from django.contrib import messages
@@ -140,6 +141,7 @@ def HoldBook(request, pk):
             messages.info(request, 'Can not hold the same book again!')
             return redirect('book-detail', pk=pk)
 
+        full_url = ''.join(['http://', get_current_site(request).domain])
         borrowed = BookBorrowed.objects.filter(borrower = request.user)
         if borrowed:
             for _ in borrowed:
@@ -154,6 +156,14 @@ def HoldBook(request, pk):
         book.save()
 
         messages.info(request, 'Book Reserved!')
+        message = f'Dear {request.user.first_name} {request.user.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
+        send_mail(
+            f'Material Hold {datetime.today()}',
+            message,
+            'LibraryManagementSystem',
+            [str(request.user.email)],
+            fail_silently=True,
+        )
         return redirect('book-detail', pk=pk)
 
 
@@ -166,6 +176,7 @@ def GiveBook(request):
         if request.method == 'POST':
             form = GiveBookForm(request.POST)
             if form.is_valid():
+                full_url = ''.join(['http://', get_current_site(request).domain])
                 book_id = form.cleaned_data['book_id']
                 user = form.cleaned_data['user_id']
 
@@ -184,7 +195,6 @@ def GiveBook(request):
                             bb = BookBorrowed.objects.create(borrower=usr, book=book_copy, res_date=datetime.now(), due_date= datetime.now() + timedelta(days=14))
                             bb.save()
 
-
                             # book.availability -= 1
                             # book.save()
 
@@ -195,9 +205,8 @@ def GiveBook(request):
                                 x.priority -= 1
                                 x.save()
 
-
                             messages.success(request, 'Book Given!')
-                            message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you'
+                            message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
                             send_mail(
                                 f'Material CheckOut {datetime.today()}',
                                 message,
@@ -234,7 +243,7 @@ def GiveBook(request):
                     book.save()
 
                     messages.success(request, 'Book Given!')
-                    message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you'
+                    message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
                     send_mail(
                         f'Material CheckOut {datetime.today()}',
                         message,
@@ -257,6 +266,7 @@ def ReturnBook(request):
         if request.method == 'POST':
             form = ReturnBookForm(request.POST)
             if form.is_valid():
+                full_url = ''.join(['http://', get_current_site(request).domain])
                 id_got = form.cleaned_data['book_id']
 
                 bc = get_object_or_404(BookCopy, book_id = id_got)
@@ -271,7 +281,7 @@ def ReturnBook(request):
                 person = BookHold.objects.filter(book=book, available=0).order_by('priority').first()
 
                 if person:
-                    message = f'Dear {person.holder.first_name} {person.holder.last_name},\nYour held book {book.title} is available. Your hold will be available for 3 days only. Please collect the book ASAP.'
+                    message = f'Dear {person.holder.first_name} {person.holder.last_name},\nYour held book {book.title} is available. Your hold will be available for 3 days only. Please collect the book ASAP.\n\nVisit: {full_url}'
                     send_mail(
                         'Hold Available for pickup',
                         message,
@@ -282,8 +292,9 @@ def ReturnBook(request):
                     person.available = 1
                     person.save()
 
+
                 messages.success(request, 'Book Returned!')
-                message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been returned to library by you'
+                message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been returned to library by you.\n\nVisit: {full_url}'
                 send_mail(
                     f'Material Return {datetime.today()}',
                     message,
