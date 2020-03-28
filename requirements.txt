@@ -2,6 +2,8 @@ asgiref==3.2.5
 Babel==2.8.0
 dj-database-url==0.5.0
 Django==3.0.4
+django-background-tasks==1.2.5
+django-compat==1.0.15
 django-crispy-forms==1.9.0
 django-heroku==0.3.1
 django-isbn-field==0.5.2
