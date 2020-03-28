@@ -20,7 +20,17 @@ def dashboard(request):
         messages.warning(request, 'You Need to first Update your profile.')
         return redirect('profile')
     else:
-        return render(request, 'users/dashboard.html')
+        H_books = BookHold.objects.filter(holder=request.user).order_by('-res_date')
+        H_books = [(x.book, x.res_date) for x in H_books]
+
+        B_books = BookBorrowed.objects.filter(borrower=request.user).order_by('-res_date')
+        B_books = [(x.book,x.res_date,x.due_date) for x in B_books]
+
+        context = {
+            'H_books': H_books,
+            'B_books': B_books
+                   }
+        return render(request, 'LibraryMS/dashboard.html', context=context)
 
 
 @login_required
