@@ -45,6 +45,7 @@ class BookCopy(models.Model):
 class BookHold(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     holder = models.ForeignKey(User, on_delete=models.CASCADE)
+    available = models.SmallIntegerField(default=0)
     res_date = models.DateTimeField()
     priority = models.PositiveIntegerField()
 

@@ -8,6 +8,7 @@ from .models import Book, BookCopy, BookHold, BookBorrowed
 from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
 
 
 
@@ -134,11 +135,17 @@ def HoldBook(request, pk):
         #         book.save()
         #         break
 
-        holds = BookHold.objects.filter(holder = request.user)
-        for _ in holds:
-            if _.book == book:
-                messages.info(request, 'Can not hold the same book again!')
-                return redirect('book-detail', pk=pk)
+        holds = BookHold.objects.filter(holder = request.user, book=book).first()
+        if holds is not None:
+            messages.info(request, 'Can not hold the same book again!')
+            return redirect('book-detail', pk=pk)
+
+        borrowed = BookBorrowed.objects.filter(borrower = request.user)
+        if borrowed:
+            for _ in borrowed:
+                if _.book.ISBN == book:
+                    messages.info(request, 'Can not hold the borrowed book again!')
+                    return redirect('book-detail', pk=pk)
 
         pr = book.availability.__abs__()
         hld = BookHold.objects.create(book=book, holder=request.user, res_date=datetime.now(), priority=pr)
@@ -176,10 +183,28 @@ def GiveBook(request):
                         if _.book == book:
                             bb = BookBorrowed.objects.create(borrower=usr, book=book_copy, res_date=datetime.now(), due_date= datetime.now() + timedelta(days=14))
                             bb.save()
-                            book.availability -= 1
-                            book.save()
+
+
+                            # book.availability -= 1
+                            # book.save()
+
                             _.delete()
+
+                            other_holds = BookHold.objects.filter(book=book)
+                            for x in other_holds:
+                                x.priority -= 1
+                                x.save()
+
+
                             messages.success(request, 'Book Given!')
+                            message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you'
+                            send_mail(
+                                f'Material CheckOut {datetime.today()}',
+                                message,
+                                'LibraryManagementSystem',
+                                [str(usr.email)],
+                                fail_silently=True,
+                            )
                             return redirect('give-book')
                     else:
                         messages.warning(request, 'Book Not Available!')
@@ -209,6 +234,14 @@ def GiveBook(request):
                     book.save()
 
                     messages.success(request, 'Book Given!')
+                    message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been issued today to you'
+                    send_mail(
+                        f'Material CheckOut {datetime.today()}',
+                        message,
+                        'LibraryManagementSystem',
+                        [str(usr.email)],
+                        fail_silently=True,
+                    )
                     return redirect('give-book')
         else:
             form = GiveBookForm()
@@ -230,10 +263,36 @@ def ReturnBook(request):
                 book = bc.ISBN
                 book.availability += 1
                 book.save()
-                temp = get_object_or_404(BookBorrowed, book = bc)
+                temp = get_object_or_404(BookBorrowed, book=bc)
                 temp.delete()
 
+                usr = User.objects.get(email=temp.borrower.email)
+
+                person = BookHold.objects.filter(book=book, available=0).order_by('priority').first()
+
+                if person:
+                    message = f'Dear {person.holder.first_name} {person.holder.last_name},\nYour held book {book.title} is available. Your hold will be available for 3 days only. Please collect the book ASAP.'
+                    send_mail(
+                        'Hold Available for pickup',
+                        message,
+                        'LibraryManagementSystem',
+                        [str(person.holder.email)],
+                        fail_silently=True,
+                    )
+                    person.available = 1
+                    person.save()
+
                 messages.success(request, 'Book Returned!')
+                message = f'Dear {usr.first_name} {usr.last_name},\nBook {book.title} has been returned to library by you'
+                send_mail(
+                    f'Material Return {datetime.today()}',
+                    message,
+                    'LibraryManagementSystem',
+                    [str(usr.email)],
+                    fail_silently=True,
+                )
+
+
                 return redirect('return-book')
 
         else:
