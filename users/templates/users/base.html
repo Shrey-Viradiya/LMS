@@ -28,9 +28,12 @@
             <div
                 class="collapse navbar-collapse" id="navbarResponsive">
                 <ul class="nav navbar-nav ml-auto">
-{#                    <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'LMS-home' %}">Home</a></li>#}
+
 {#                    <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'blog-about' %}">About</a></li>#}
                     {% if user.is_authenticated %}
+                        {% if not user.is_staff %}
+                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'LMS-home' %}">Home</a></li>
+                        {% endif %}
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'Member-dashboard' %}">DashBoard</a></li>
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
                         {% if user.is_staff %}
