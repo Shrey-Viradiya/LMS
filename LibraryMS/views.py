@@ -9,9 +9,22 @@ from .models import Book, BookCopy, BookHold, BookBorrowed
 from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
-
+from .tasks import SendEmails
 
 # Create your views here.
+
+@login_required
+def StartBackgroundProcess(request):
+    if not request.user.is_staff:
+        messages.warning(request, 'You are not authorised to requested page.')
+        return redirect('Member-dashboard')
+    else:
+        full_url = ''.join(['http://', get_current_site(request).domain])
+        SendEmails(full_url, repeat=86400, schedule=timedelta(minutes=1))
+        messages.info(request,'Background Process Start')
+        return redirect('Member-dashboard')
+
+
 @login_required
 def dashboard(request):
     if Member.objects.filter(user=request.user).first() is None:
@@ -22,12 +35,12 @@ def dashboard(request):
         H_books = [(x.book, x.res_date) for x in H_books]
 
         B_books = BookBorrowed.objects.filter(borrower=request.user).order_by('-res_date')
-        B_books = [(x.book,x.res_date,x.due_date) for x in B_books]
+        B_books = [(x.book, x.res_date, x.due_date) for x in B_books]
 
         context = {
             'H_books': H_books,
             'B_books': B_books
-                   }
+        }
         return render(request, 'LibraryMS/dashboard.html', context=context)
 
 
@@ -126,7 +139,7 @@ def HoldBook(request, pk):
     book = Book.objects.get(ISBN=pk)
     if book.availability > 0:
         messages.warning(request, 'You can not hold the book which are all ready available in the shelf!')
-        return redirect('book-detail',pk = pk)
+        return redirect('book-detail', pk=pk)
     else:
         # book_copies = BookCopy.objects.filter(ISBN=book)
         #
@@ -144,13 +157,13 @@ def HoldBook(request, pk):
         #         book.save()
         #         break
 
-        holds = BookHold.objects.filter(holder = request.user, book=book).first()
+        holds = BookHold.objects.filter(holder=request.user, book=book).first()
         if holds is not None:
             messages.info(request, 'Can not hold the same book again!')
             return redirect('book-detail', pk=pk)
 
         full_url = ''.join(['http://', get_current_site(request).domain])
-        borrowed = BookBorrowed.objects.filter(borrower = request.user)
+        borrowed = BookBorrowed.objects.filter(borrower=request.user)
         if borrowed:
             for _ in borrowed:
                 if _.book.ISBN == book:
@@ -163,7 +176,6 @@ def HoldBook(request, pk):
         book.availability -= 1
         book.save()
 
-
         message = f'Dear {request.user.first_name} {request.user.last_name},\nBook {book.title} has been issued today to you.\n\nVisit: {full_url}'
         # send_mail(
         #     f'Material Hold {datetime.today()}',
@@ -172,7 +184,7 @@ def HoldBook(request, pk):
         #     [str(request.user.email)],
         #     fail_silently=True,
         # )
-        request.user.email_user(f'Material Hold {datetime.today()}',message)
+        request.user.email_user(f'Material Hold {datetime.today()}', message)
         messages.info(request, 'Book Reserved!')
         return redirect('book-detail', pk=pk)
 
@@ -191,10 +203,10 @@ def GiveBook(request):
                 user = form.cleaned_data['user_id']
 
                 book_copy = get_object_or_404(BookCopy, book_id=book_id)
-                usr = get_object_or_404(User,id=user)
+                usr = get_object_or_404(User, id=user)
                 book = book_copy.ISBN
 
-                if BookBorrowed.objects.filter(book = book_copy).first():
+                if BookBorrowed.objects.filter(book=book_copy).first():
                     messages.warning(request, 'Book Already Borrowed! Something is wrong !Do not give the book...')
                     return redirect('give-book')
 
@@ -202,7 +214,8 @@ def GiveBook(request):
                     check = BookHold.objects.filter(holder=usr)
                     for _ in check:
                         if _.book == book:
-                            bb = BookBorrowed.objects.create(borrower=usr, book=book_copy, res_date=datetime.now(), due_date= datetime.now() + timedelta(days=14))
+                            bb = BookBorrowed.objects.create(borrower=usr, book=book_copy, res_date=datetime.now(),
+                                                             due_date=datetime.now() + timedelta(days=14))
                             bb.save()
 
                             # book.availability -= 1
@@ -223,7 +236,7 @@ def GiveBook(request):
                             #     [str(usr.email)],
                             #     fail_silently=True,
                             # )
-                            usr.email_user(f'Material CheckOut {datetime.today()}',message)
+                            usr.email_user(f'Material CheckOut {datetime.today()}', message)
 
                             messages.success(request, 'Book Given!')
                             return redirect('give-book')
@@ -283,7 +296,7 @@ def ReturnBook(request):
                 full_url = ''.join(['http://', get_current_site(request).domain])
                 id_got = form.cleaned_data['book_id']
 
-                bc = get_object_or_404(BookCopy, book_id = id_got)
+                bc = get_object_or_404(BookCopy, book_id=id_got)
                 book = bc.ISBN
                 book.availability += 1
                 book.save()
@@ -328,18 +341,19 @@ def ReturnBook(request):
 
 def home(request):
     if request.method == 'GET':
-        query= request.GET.get('q')
+        query = request.GET.get('q')
 
         submitbutton = request.GET.get('submit')
 
         if query is not None:
             query = query.title()
-            lookups= Q(title__icontains=query) | Q(authors__name__icontains=query) | Q(publisher__name__icontains=query)
+            lookups = Q(title__icontains=query) | Q(authors__name__icontains=query) | Q(
+                publisher__name__icontains=query)
 
-            results= Book.objects.filter(lookups).distinct()
+            results = Book.objects.filter(lookups).distinct()
 
-            context={'results': results,
-                     'submitbutton': submitbutton}
+            context = {'results': results,
+                       'submitbutton': submitbutton}
             return render(request, 'LibraryMS/home.html', context)
 
         else:

@@ -46,4 +46,5 @@ urlpatterns = [
     path('book/Hold/<int:pk>/', LMS_views.HoldBook , name = 'book-hold'),
     path('givebook/', LMS_views.GiveBook , name = 'give-book'),
     path('returnbook/', LMS_views.ReturnBook , name = 'return-book'),
+    path('sbp/',LMS_views.StartBackgroundProcess, name = 'sbp')
 ]
