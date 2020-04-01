@@ -61,3 +61,11 @@ class BookBorrowed(models.Model):
 
     def __str__(self):
         return f"Book {self.book.book_id} Borrowed By User ID {self.borrower.id}"
+
+
+class UserHistory(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    reader = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Reader {self.reader.first_name} {self.reader.last_name} read {self.book.ISBN}"

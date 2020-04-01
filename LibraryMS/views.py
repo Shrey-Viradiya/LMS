@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from users.models import Member
 from django.contrib import messages
 from django.views.generic import DetailView
-from .models import Book, BookCopy, BookHold, BookBorrowed
+from .models import Book, BookCopy, BookHold, BookBorrowed, UserHistory
 from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
@@ -37,9 +37,13 @@ def dashboard(request):
         B_books = BookBorrowed.objects.filter(borrower=request.user).order_by('-res_date')
         B_books = [(x.book, x.res_date, x.due_date) for x in B_books]
 
+        history = UserHistory.objects.filter(reader = request.user)
+        history = [(x.book.title, x.book.ISBN) for x in history]
+
         context = {
             'H_books': H_books,
-            'B_books': B_books
+            'B_books': B_books,
+            'history': history
         }
         return render(request, 'LibraryMS/dashboard.html', context=context)
 
@@ -305,6 +309,10 @@ def ReturnBook(request):
 
                 usr = User.objects.get(email=temp.borrower.email)
 
+                record = UserHistory.objects.create(book = book, reader = usr)
+                record.save()
+
+
                 person = BookHold.objects.filter(book=book, available=0).order_by('priority').first()
 
                 if person:
@@ -348,7 +356,7 @@ def home(request):
         if query is not None:
             query = query.title()
             lookups = Q(title__icontains=query) | Q(authors__name__icontains=query) | Q(
-                publisher__name__icontains=query)
+                publisher__name__icontains=query) | Q(ISBN__icontains=query)
 
             results = Book.objects.filter(lookups).distinct()
 

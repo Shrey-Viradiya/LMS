@@ -58,4 +58,29 @@
     {% else %}
         <p class="post-subtitle">No Books Reserved</p>
     {% endif %}
+
+
+    <h3>Your History</h3>
+    <hr>
+    {% if history %}
+        {% for title, ISBN in history %}
+            <div class="d-xl-flex align-items-xl-start">
+            <div class="book-preview">
+                <h2 class="book-title">{{ title }}</h2></a>
+                <h5 class="">ISBN: {{ ISBN }}</h5>
+    {#            By#}
+    {#            <p class="post-meta">#}
+    {#                {% for author in book.authors.all %}#}
+    {#                    {{ author }}&nbsp;#}
+    {#                {% endfor %}#}
+    {#            </p>#}
+{#                <p class="post-subtitle"><small>Publisher:</small> {{ book.ISBN.publisher }}</p>#}
+
+            </div>
+        </div>
+            <hr>
+        {% endfor %}
+    {% else %}
+        <p class="post-subtitle">No History Records. Your History records will be available after you return the book.</p>
+    {% endif %}
 {% endblock content %}
