@@ -5,11 +5,19 @@ from django.contrib.auth.decorators import login_required
 from users.models import Member
 from django.contrib import messages
 from django.views.generic import DetailView
-from .models import Book, BookCopy, BookHold, BookBorrowed, UserHistory
-from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm
+from .models import Book, BookCopy, BookHold, BookBorrowed, UserHistory, ReviewRequest, ReviewRecord
+from .forms import AuthorUpdateForm, PublisherUpdateForm, AddBookForm, GiveBookForm, ReturnBookForm, Review
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 from .tasks import SendEmails
+from textblob import TextBlob
+from random import randint
+from models.BooksData import BooksData
+from surprise import KNNBasic, SVDpp
+import numpy as np
+import heapq
+from collections import defaultdict
+from operator import itemgetter
 
 # Create your views here.
 
@@ -40,10 +48,14 @@ def dashboard(request):
         history = UserHistory.objects.filter(reader = request.user)
         history = [(x.book.title, x.book.ISBN) for x in history]
 
+        pending_reviews = ReviewRequest.objects.filter(user = request.user)
+        pending_reviews = [(x.book.title, x.book.ISBN) for x in pending_reviews]
+
         context = {
             'H_books': H_books,
             'B_books': B_books,
-            'history': history
+            'history': history,
+            'prs' : pending_reviews
         }
         return render(request, 'LibraryMS/dashboard.html', context=context)
 
@@ -137,6 +149,137 @@ class BookDetailView(DetailView):
         context['copies'] = BookCopy.objects.filter(ISBN=self.get_object().ISBN)
         return context
 
+
+@login_required
+def review(request, pk):
+    if Member.objects.filter(user=request.user).first() is None:
+        messages.warning(request, 'You Need to first Update your profile.')
+        return redirect('profile')
+
+    book = Book.objects.get(ISBN=pk)
+    RevReq = get_object_or_404(ReviewRequest,user= request.user, book=book)
+    if RevReq is None:
+        messages.warning(request, 'Invalid Review Request')
+        return redirect('Member-dashboard')
+
+    if request.method == 'POST':
+        form = Review(request.POST)
+        if form.is_valid():
+            rev = form.cleaned_data['review']
+            rev = TextBlob(rev)
+
+            r = book.rating
+            c = book.review_count
+            r = r * c
+            if rev.sentiment.polarity >= 0:
+                # positive review
+                r += 5
+                temp = randint(8,10)
+            else:
+                # negative review
+                r += 1
+                temp = randint(1,4)
+
+            r /= c + 1
+            book.review_count += 1
+            book.rating = r
+            book.save()
+
+            with open('data/ratings.csv','a') as file:
+                file.write(f"\n{request.user.id},{book.ISBN},{temp}")
+
+            revRec = ReviewRecord(user=request.user, book= book, review= rev)
+            revRec.save()
+
+            RevReq.delete()
+            messages.success(request, f'Review Submitted. Thank You!')
+            return redirect('Member-dashboard')
+    else:
+        form = Review()
+    return render(request, 'LibraryMS/review.html', {'form': form , 'title':book.title})
+
+
+@login_required
+def recommendations(request):
+    testSubject = str(request.user.id)
+    k = 10
+
+    bk = BooksData('data/')
+    data = bk.loadBooksData()
+
+    trainSet = data.build_full_trainset()
+
+    sim_options = {'name': 'cosine',
+                   'user_based': True
+                   }
+
+    model = KNNBasic(sim_options=sim_options)
+    model.fit(trainSet)
+    simsMatrix = model.compute_similarities()
+    simsMatrix = np.nan_to_num(simsMatrix)
+
+    # print(simsMatrix)
+    # print(type(simsMatrix))
+
+    # Get top N similar users to our test subject
+    testUserInnerID = trainSet.to_inner_uid(testSubject)
+
+    if sim_options['user_based']:
+        similarityRow = simsMatrix[testUserInnerID]
+
+        similarUsers = []
+        for innerID, score in enumerate(similarityRow):
+            if innerID != testUserInnerID:
+                similarUsers.append((innerID, score))
+
+        kNeighbors = heapq.nlargest(k, similarUsers, key=lambda t: t[1])
+
+        candidates = defaultdict(float)
+        for similarUser in kNeighbors:
+            innerID = similarUser[0]
+            userSimilarityScore = similarUser[1]
+            theirRatings = trainSet.ur[innerID]
+            for rating in theirRatings:
+                candidates[rating[0]] += (rating[1] / 10.0) * userSimilarityScore
+
+    else:
+        testUserRatings = trainSet.ur[testUserInnerID]
+        kNeighbors = heapq.nlargest(k, testUserRatings, key=lambda t: t[1])
+
+        candidates = defaultdict(float)
+        for itemID, rating in kNeighbors:
+            similarityRow = simsMatrix[itemID]
+            for innerID, score in enumerate(similarityRow):
+                candidates[innerID] += score * (rating / 10.0)
+    # Get the stuff they rated, and add up ratings for each item, weighted by user similarity
+
+    # Build a dictionary of stuff the user has already read
+    read = {}
+    # print('\n\nBooks user already read.')
+    # print("============================")
+    for itemID, rating in trainSet.ur[testUserInnerID]:
+        bookID = trainSet.to_raw_iid(itemID)
+        # print(bk.getBookName(bookID))
+        read[itemID] = 1
+
+    # Get top-rated items from similar users:
+    pos = 0
+    bks2 = []
+    for itemID, ratingSum in sorted(candidates.items(), key=itemgetter(1), reverse=True):
+        if not itemID in read:
+            bookID = trainSet.to_raw_iid(itemID)
+            # print(bk.getBookName(bookID))
+            bks2.append(bookID)
+            pos += 1
+            if (pos > 10):
+                break
+
+    bks = []
+
+    for _ in bks2:
+        bks.append(Book.objects.get(ISBN=_))
+
+    return render(request, 'LibraryMS/recommendations.html', {'bks': bks})
 
 @login_required
 def HoldBook(request, pk):
@@ -311,6 +454,9 @@ def ReturnBook(request):
 
                 record = UserHistory.objects.create(book = book, reader = usr)
                 record.save()
+
+                req = ReviewRequest.objects.create(book = book, user = usr)
+                req.save()
 
 
                 person = BookHold.objects.filter(book=book, available=0).order_by('priority').first()

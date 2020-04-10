@@ -42,9 +42,11 @@ urlpatterns = [
          name='password_reset_complete'),
     path('register/', user_views.register, name='register'),
     path('profile/', user_views.profile, name='profile'),
-    path('book/<int:pk>/', BookDetailView.as_view() , name = 'book-detail'),
-    path('book/Hold/<int:pk>/', LMS_views.HoldBook , name = 'book-hold'),
+    path('book/<str:pk>/', BookDetailView.as_view() , name = 'book-detail'),
+    path('book/Hold/<str:pk>/', LMS_views.HoldBook , name = 'book-hold'),
+    path('book/review/<str:pk>/', LMS_views.review , name = 'book-review'),
     path('givebook/', LMS_views.GiveBook , name = 'give-book'),
     path('returnbook/', LMS_views.ReturnBook , name = 'return-book'),
-    path('sbp/',LMS_views.StartBackgroundProcess, name = 'sbp')
+    path('sbp/',LMS_views.StartBackgroundProcess, name = 'sbp'),
+    path('recommendations/',LMS_views.recommendations, name = 'recommendations' )
 ]

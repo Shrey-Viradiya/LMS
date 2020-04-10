@@ -16,7 +16,7 @@
     <h3>Results for <b>{{ request.GET.q }}</b></h3>
     <hr>
     {% for result in results %}
-
+        {% if 'X' not in result.ISBN %}
         <div class="d-xl-flex align-items-xl-start">
         <div class="book-preview">
             <a href="{% url 'book-detail' result.ISBN %}"><h2 class="book-title">{{ result.title }}</h2></a>
@@ -27,9 +27,28 @@
                     {{ author }}&nbsp;
                 {% endfor %}
             </p>
+            <p class="post-subtitle"><small>Ratings:</small> {{ result.rating }}</p>
+            <p class="post-subtitle"><small>Ratings Counts:</small> {{ result.review_count }}</p>
             <p class="post-subtitle"><small>Publisher:</small> {{ result.publisher }}</p>
     </div>
     </div>
+        {% else %}
+            <div class="d-xl-flex align-items-xl-start">
+            <div class="book-preview">
+                <a href="{% url 'book-detail' result.ISBN %}"><h2 class="book-title">{{ result.title }}</h2></a>
+                <h5 class="">ISBN: {{ result.ISBN }}</h5>
+                By
+                <p class="post-meta">
+                    {% for author in result.authors.all %}
+                        {{ author }}&nbsp;
+                    {% endfor %}
+                </p>
+                <p class="post-subtitle"><small>Ratings:</small> {{ result.rating }}</p>
+                <p class="post-subtitle"><small>Ratings Counts:</small> {{ result.review_count }}</p>
+                <p class="post-subtitle"><small>Publisher:</small> {{ result.publisher }}</p>
+        </div>
+        </div>
+        {% endif %}
         <hr>
     {% endfor %}
     {% else %}

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Author, Publisher
+from .models import Author, Publisher, ReviewRecord
 
 
 class AuthorUpdateForm(forms.ModelForm):
@@ -36,3 +36,9 @@ class GiveBookForm(forms.Form):
 
 class ReturnBookForm(forms.Form):
     book_id = forms.IntegerField(label='Book ID', min_value=0, max_value=9999999999999)
+
+
+class Review(forms.ModelForm):
+    class Meta:
+        model = ReviewRecord
+        fields = ['review']
