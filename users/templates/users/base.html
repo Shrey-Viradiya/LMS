@@ -38,11 +38,11 @@
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'Member-dashboard' %}">DashBoard</a></li>
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
                         {% if user.is_staff %}
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-author' %}">Add Author</a></li>
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-publisher' %}">Add-Publisher</a></li>
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-book' %}">Add-book</a></li>
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'give-book' %}">Give-book</a></li>
-                            <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'return-book' %}">Return-book</a></li>
+
+                                <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'add-item' %}">Add</a></li>
+                                <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'give-book' %}">Give-book</a></li>
+                                <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'return-book' %}">Return-book</a></li>
+
                         {% endif %}
 
                         <li class="nav-item" role="presentation"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
