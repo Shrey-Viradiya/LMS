@@ -13,7 +13,7 @@ from .tasks import SendEmails
 from textblob import TextBlob
 from random import randint
 from models.BooksData import BooksData
-from surprise import KNNBasic, SVDpp
+from surprise import KNNBasic, SVD
 import numpy as np
 import heapq
 from collections import defaultdict
@@ -201,6 +201,9 @@ def review(request, pk):
 
 @login_required
 def recommendations(request):
+    if Member.objects.filter(user=request.user).first() is None:
+        messages.warning(request, 'You Need to first Update your profile.')
+        return redirect('profile')
     testSubject = str(request.user.id)
     k = 10
 
@@ -275,17 +278,48 @@ def recommendations(request):
                 if (pos > 10):
                     break
 
-        bks = []
+        UCB = []
 
         for _ in bks2:
-            bks.append(Book.objects.get(ISBN=_))
+            UCB.append(Book.objects.get(ISBN=_))
 
+
+        # SVD Algorithms
+        def GetAntiTestSetForUser(testSubject, trainSet):
+            fill = trainSet.global_mean
+            anti_testset = []
+            u = trainSet.to_inner_uid(str(testSubject))
+            user_items = set([j for (j, _) in trainSet.ur[u]])
+            anti_testset += [(trainSet.to_raw_uid(u), trainSet.to_raw_iid(i), fill) for
+                             i in trainSet.all_items() if
+                             i not in user_items]
+            return anti_testset
+
+        model = SVD()
+        model.fit(trainSet)
+        testSet = GetAntiTestSetForUser(testSubject, trainSet)
+        predictions = model.test(testSet)
+        recommendations = []
+        for userID, ISBN, actualRating, estimatedRating, _ in predictions:
+            isbn = ISBN
+            recommendations.append((isbn, estimatedRating))
+
+        recommendations.sort(key=lambda x: x[1], reverse=True)
+
+        SVDB = []
+        for ratings in recommendations[:k]:
+            # print(bk.getBookName(ratings[0]))
+            SVDB.append(Book.objects.get(ISBN = ratings[0]))
     except:
-        bks = []
-    return render(request, 'LibraryMS/recommendations.html', {'bks': bks})
+        UCB = []
+        SVDB = []
+    return render(request, 'LibraryMS/recommendations.html', {'UCB': UCB, 'SVDB': SVDB})
 
 @login_required
 def HoldBook(request, pk):
+    if Member.objects.filter(user=request.user).first() is None:
+        messages.warning(request, 'You Need to first Update your profile.')
+        return redirect('profile')
     book = Book.objects.get(ISBN=pk)
     if book.availability > 0:
         messages.warning(request, 'You can not hold the book which are all ready available in the shelf!')
@@ -354,6 +388,9 @@ def GiveBook(request):
 
                 book_copy = get_object_or_404(BookCopy, book_id=book_id)
                 usr = get_object_or_404(User, id=user)
+                if Member.objects.filter(user=usr).first() is None:
+                    messages.warning(request, 'User Need to first Update your profile.')
+                    return redirect('profile')
                 book = book_copy.ISBN
 
                 if BookBorrowed.objects.filter(book=book_copy).first():
@@ -436,6 +473,9 @@ def GiveBook(request):
 
 @login_required
 def AddMaterial(request):
+    if Member.objects.filter(user=request.user).first() is None:
+        messages.warning(request, 'You Need to first Update your profile.')
+        return redirect('profile')
     if not request.user.is_staff:
         messages.warning(request, 'You are not authorised to requested page.')
         return redirect('Member-dashboard')
@@ -444,6 +484,9 @@ def AddMaterial(request):
 
 @login_required
 def ReturnBook(request):
+    if Member.objects.filter(user=request.user).first() is None:
+        messages.warning(request, 'You Need to first Update your profile.')
+        return redirect('profile')
     if not request.user.is_staff:
         messages.warning(request, 'You are not authorised to requested page.')
         return redirect('Member-dashboard')
