@@ -16,7 +16,7 @@ https://github.com/Shrey-Viradiya/LMS/blob/master/DBMS.mp4
 ![](ER_Diagram_LMS.jpg)
 
 ### Relational Model
-![](RELATIONALS_MODEL_LMS(3).jpg)
+![](RELATIONALS_MODEL_LMS (3).jpg)
 
 ### Screen Shots of psql
 
