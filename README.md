@@ -1,6 +1,10 @@
 # LMS
 Library Management System Project for DBMS and PSC
 
+## Students
+- Tirth Patel 18BCE245
+- Shrey Viradiya 18BCE259
+
 ## Description
 This project is Library Management System. Quite similar to the LMS we have in Nirma University. Project is implemented in django.
 Django is python based framework for web application development. Instagram, Pintrest are few examples of famous web application written in django.
